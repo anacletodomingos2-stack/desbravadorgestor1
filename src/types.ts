@@ -1,80 +1,59 @@
-export type PathfinderClass = 
-  | 'Amigo'
-  | 'Companheiro'
-  | 'Pesquisador'
-  | 'Pioneiro'
-  | 'Excursionista'
-  | 'Guia'
-  | 'Líder'
-  | 'Líder Master';
-
-export type RoleType = 
-  | 'Desbravador'
-  | 'Capitão'
-  | 'Secretário de Unidade'
-  | 'Conselheiro'
-  | 'Conselheiro Associado'
-  | 'Instrutor'
-  | 'Secretário do Clube'
-  | 'Tesoureiro'
-  | 'Diretor Associado'
-  | 'Diretor';
+export interface InvestiduraClass {
+  classe: string;
+  data: string;
+  nome?: string;
+  dataConclusao?: string;
+}
 
 export interface Member {
   id: string;
-  fullName: string;
-  birthDate: string; // YYYY-MM-DD
-  gender: 'M' | 'F';
-  bloodType: string;
-  allergies: string;
-  phone: string;
-  guardianName: string;
-  guardianPhone: string;
-  unitId: string;
-  currentClass: PathfinderClass;
-  role: RoleType;
-  admissionDate: string;
-  isActive: boolean;
-  notes?: string;
+  foto?: string;
+  nomeCompleto: string;
+  dataNascimento: string;
+  sexo: "M" | "F" | "";
+  telefone: string;
+  endereco: string;
+  bairro: string;
+  municipio: string;
+  provincia: string;
+  escola: string;
+  classeEscolar?: string;
+  igreja: string;
+  distrito: string;
+  regiao: string;
+  cedula: string;
+  nomeEncarregado1: string;
+  nomeEncarregado2: string;
+  nomePai?: string;
+  nomeMae?: string;
+  contatoPai: string;
+  contatoMae: string;
+  email: string;
+  classe: string;
+  unidade: string;
+  cargo: string;
+  dataEntrada: string;
+  ativo: boolean;
+  observacoes: string;
+  membroBaptizado: boolean;
+  numeroBaptismo: string;
+  dataBaptismo: string;
+  classeAtual: string;
+  dataInvestidura: string;
+  classesAnteriores: InvestiduraClass[];
+  numeroIdentificacao: string;
 }
 
-export interface Unit {
+export interface AuditRecord {
   id: string;
-  name: string;
-  gender: 'M' | 'F' | 'Misto';
-  counselorName: string;
-  counselorPhone?: string;
-  color: string;
-  motto: string;
+  date: string;
+  user: string;
+  operation: "CREATE" | "UPDATE" | "STATUS" | "DELETE" | string;
+  entity: string;
+  entityId: string;
+  previousValueJson?: string;
+  newValueJson?: string;
+  origin: string;
 }
 
-export interface MemberAttendance {
-  memberId: string;
-  status: 'present' | 'late' | 'excused' | 'absent';
-  uniform: 'full' | 'partial' | 'none';
-  notes?: string;
-}
-
-export interface AttendanceSession {
-  id: string;
-  date: string; // YYYY-MM-DD
-  activityTitle: string;
-  records: MemberAttendance[];
-}
-
-export interface FeePayment {
-  id: string;
-  memberId: string;
-  month: string; // e.g., '2026-03'
-  amount: number;
-  paidDate?: string;
-  status: 'paid' | 'pending';
-}
-
-export interface ClubInfo {
-  name: string;
-  churchName: string;
-  association: string;
-  directorName: string;
-  year: number;
-}
+export type NavPage = "dashboard" | "membros" | "cadastrar" | "editar" | "detalhe" | "relatorios" | "auditoria";

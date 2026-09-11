@@ -1,371 +1,297 @@
 import React from 'react';
-import { useClub } from '../context/ClubContext';
-import { PathfinderClass } from '../types';
-import { 
-  Users, 
-  ShieldCheck, 
-  Layers, 
-  CalendarCheck, 
-  DollarSign, 
-  Cake, 
-  Award, 
-  UserPlus, 
-  CheckCircle2, 
-  Clock,
-  AlertCircle
+import { Member, NavPage } from '../types';
+import {
+  Users,
+  UserCheck,
+  UserX,
+  Droplets,
+  UserPlus,
+  ArrowRight,
+  Shield,
+  Layers,
+  Award,
+  BookOpen,
 } from 'lucide-react';
 
 interface DashboardProps {
-  onNavigate: (tab: 'dashboard' | 'members' | 'attendance' | 'units' | 'fees') => void;
-  onOpenAddMember: () => void;
+  members: Member[];
+  onNav: (p: NavPage, id?: string) => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onOpenAddMember }) => {
-  const { members, units, attendanceSessions, feePayments, clubInfo } = useClub();
+export const Dashboard: React.FC<DashboardProps> = ({ members, onNav }) => {
+  const total = members.length;
+  const activeCount = members.filter((m) => m.ativo).length;
+  const inactiveCount = total - activeCount;
+  const baptizedCount = members.filter((m) => m.membroBaptizado).length;
 
-  const totalMembers = members.length;
-  const activeMembers = members.filter((m) => m.isActive).length;
-  const inactiveMembers = totalMembers - activeMembers;
+  const maleCount = members.filter((m) => m.sexo === 'M').length;
+  const femaleCount = members.filter((m) => m.sexo === 'F').length;
 
-  // Calculate attendance rate
-  let avgAttendanceRate = 0;
-  if (attendanceSessions.length > 0) {
-    const totalRecords = attendanceSessions.reduce((acc, s) => acc + s.records.length, 0);
-    const totalPresents = attendanceSessions.reduce(
-      (acc, s) => acc + s.records.filter((r) => r.status === 'present' || r.status === 'late').length,
-      0
-    );
-    avgAttendanceRate = totalRecords > 0 ? Math.round((totalPresents / totalRecords) * 100) : 0;
-  }
-
-  // Fees calculation
-  const currentMonthStr = new Date().toISOString().slice(0, 7);
-  const currentMonthFees = feePayments.filter((f) => f.month === currentMonthStr || f.month === '2026-03');
-  const paidFeesCount = currentMonthFees.filter((f) => f.status === 'paid').length;
-  const totalFeesCount = currentMonthFees.length || activeMembers;
-  const feeRate = totalFeesCount > 0 ? Math.round((paidFeesCount / totalFeesCount) * 100) : 0;
-
-  // Birthday members this month
-  const currentMonthNum = new Date().getMonth() + 1;
-  const birthdayMembers = members.filter((m) => {
-    if (!m.birthDate) return false;
-    const birthMonth = parseInt(m.birthDate.split('-')[1], 10);
-    return birthMonth === currentMonthNum;
-  });
-
-  // Classes count
-  const classOrder: PathfinderClass[] = [
-    'Amigo',
-    'Companheiro',
-    'Pesquisador',
-    'Pioneiro',
-    'Excursionista',
-    'Guia',
-    'Líder',
-    'Líder Master',
-  ];
-
-  const classCounts = classOrder.map((cls) => ({
+  // Group by progressive class
+  const classOrder = ['Amigo', 'Companheiro', 'Pesquisador', 'Pioneiro', 'Excursionista', 'Guia', 'Líder', 'Líder Master'];
+  const classStats = classOrder.map((cls) => ({
     name: cls,
-    count: members.filter((m) => m.currentClass === cls).length,
+    count: members.filter((m) => (m.classeAtual || m.classe) === cls).length,
   }));
 
-  const maxClassCount = Math.max(...classCounts.map((c) => c.count), 1);
-
-  // Latest attendance
-  const latestSession = attendanceSessions[0];
+  // Group by Unit
+  const unitsMap: Record<string, number> = {};
+  members.forEach((m) => {
+    const unit = m.unidade || 'Sem Unidade';
+    unitsMap[unit] = (unitsMap[unit] || 0) + 1;
+  });
 
   return (
     <div className="space-y-6">
-      {/* Top Welcome Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Welcome Banner */}
+      <div className="rounded-2xl p-6 text-white shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4" style={{ background: '#1B3A6B' }}>
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-xs font-bold uppercase tracking-wider">
-              {clubInfo.year} &bull; Painel de Gestão
-            </span>
-          </div>
-          <h2 className="text-xl sm:text-2xl font-bold text-white">
-            {clubInfo.name}
-          </h2>
-          <p className="text-sm text-slate-300 mt-1">
-            Portal oficial de controlo e cadastro de desbravadores, unidades, presenças e classes.
+          <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-400 text-slate-950 inline-block mb-2">
+            Painel Geral do Clube
+          </span>
+          <h2 className="text-xl font-bold tracking-tight">Portal de Controlo de Membros</h2>
+          <p className="text-xs text-white/80 mt-1 max-w-xl">
+            Gestão oficial de cadastro de desbravadores, histórico de classes, batismo e auditoria em tempo real.
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2.5">
+        <div className="flex items-center gap-2">
           <button
-            id="btn-dashboard-add-member"
-            onClick={onOpenAddMember}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-semibold rounded-xl shadow-sm transition-colors cursor-pointer"
+            onClick={() => onNav('cadastrar')}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-amber-400 text-slate-950 hover:bg-amber-300 transition-colors shadow-sm cursor-pointer"
           >
             <UserPlus className="w-4 h-4" />
-            Adicionar Membro
-          </button>
-          <button
-            id="btn-dashboard-attendance"
-            onClick={() => onNavigate('attendance')}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-100 text-sm font-semibold rounded-xl border border-slate-700 transition-colors cursor-pointer"
-          >
-            <CalendarCheck className="w-4 h-4 text-amber-400" />
-            Fazer Chamada
+            Cadastrar Membro
           </button>
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Primary KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Members */}
-        <div 
-          onClick={() => onNavigate('members')}
-          className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-xs hover:border-amber-400/80 transition-all cursor-pointer group"
-        >
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-medium text-slate-600">Total de Membros</span>
-            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500">Total de Membros</span>
+            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
               <Users className="w-4 h-4" />
             </div>
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-bold text-slate-900">{totalMembers}</span>
-            <span className="text-xs text-emerald-600 font-medium">{activeMembers} ativos</span>
+          <div className="mt-3 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-slate-900">{total}</span>
+            <span className="text-xs text-slate-400 font-medium">cadastrados</span>
           </div>
-          <div className="mt-2 text-[11px] text-slate-400">
-            {inactiveMembers > 0 ? `${inactiveMembers} inativo(s)` : 'Todos ativos'}
-          </div>
-        </div>
-
-        {/* Units */}
-        <div 
-          onClick={() => onNavigate('units')}
-          className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-xs hover:border-amber-400/80 transition-all cursor-pointer group"
-        >
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-medium text-slate-600">Unidades Ativas</span>
-            <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center group-hover:bg-amber-500 group-hover:text-slate-950 transition-colors">
-              <Layers className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-bold text-slate-900">{units.length}</span>
-            <span className="text-xs text-slate-500">estruturadas</span>
-          </div>
-          <div className="mt-2 text-[11px] text-slate-400">
-            Média de {units.length ? Math.round(activeMembers / units.length) : 0} por unidade
+          <div className="mt-2 text-[11px] text-slate-500 flex items-center gap-2">
+            <span>{maleCount} Masculinos</span>
+            <span>&bull;</span>
+            <span>{femaleCount} Femininos</span>
           </div>
         </div>
 
-        {/* Attendance Rate */}
-        <div 
-          onClick={() => onNavigate('attendance')}
-          className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-xs hover:border-amber-400/80 transition-all cursor-pointer group"
-        >
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-medium text-slate-600">Frequência Média</span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-              <CalendarCheck className="w-4 h-4" />
+        {/* Active Members */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500">Membros Ativos</span>
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <UserCheck className="w-4 h-4" />
             </div>
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-bold text-slate-900">{avgAttendanceRate}%</span>
-            <span className="text-xs text-emerald-600 font-medium">nas reuniões</span>
+          <div className="mt-3 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-emerald-600">{activeCount}</span>
+            <span className="text-xs text-slate-400 font-medium">
+              {total > 0 ? Math.round((activeCount / total) * 100) : 0}% do clube
+            </span>
           </div>
-          <div className="mt-2 text-[11px] text-slate-400">
-            {attendanceSessions.length} chamada(s) registada(s)
+          <div className="mt-2 text-[11px] text-emerald-600 font-medium">
+            Em plena atividade regular
           </div>
         </div>
 
-        {/* Dues / Fees */}
-        <div 
-          onClick={() => onNavigate('fees')}
-          className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-xs hover:border-amber-400/80 transition-all cursor-pointer group"
-        >
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-medium text-slate-600">Quotas do Mês</span>
-            <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center group-hover:bg-purple-600 group-hover:text-white transition-colors">
-              <DollarSign className="w-4 h-4" />
+        {/* Inactive Members */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500">Inativos / Afastados</span>
+            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+              <UserX className="w-4 h-4" />
             </div>
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-bold text-slate-900">{feeRate}%</span>
-            <span className="text-xs text-slate-500 font-medium">pagas</span>
+          <div className="mt-3 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-amber-600">{inactiveCount}</span>
+            <span className="text-xs text-slate-400 font-medium">preservados</span>
           </div>
-          <div className="mt-2 text-[11px] text-slate-400">
-            {paidFeesCount} de {totalFeesCount} membros em dia
+          <div className="mt-2 text-[11px] text-slate-500">
+            Histórico e fichas mantidos
+          </div>
+        </div>
+
+        {/* Baptized */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500">Membros Batizados</span>
+            <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <Droplets className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-3 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-indigo-600">{baptizedCount}</span>
+            <span className="text-xs text-slate-400 font-medium">
+              {total > 0 ? Math.round((baptizedCount / total) * 100) : 0}% batizados
+            </span>
+          </div>
+          <div className="mt-2 text-[11px] text-slate-500">
+            {total - baptizedCount} em preparação espiritual
           </div>
         </div>
       </div>
 
-      {/* 2 Column Layout for Charts and Info */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Distribution by Class & Units */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Classes Breakdown */}
-          <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <Award className="w-4 h-4 text-amber-500" />
-                  Membros por Classe de Desbravadores
-                </h3>
-                <p className="text-xs text-slate-500">Distribuição do clube por classes regulares e liderança</p>
-              </div>
-              <button 
-                onClick={() => onNavigate('units')}
-                className="text-xs font-semibold text-amber-600 hover:text-amber-700 cursor-pointer"
-              >
-                Ver classes &rarr;
-              </button>
+      {/* Classes & Units Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Classes Progression */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Award className="w-4 h-4 text-[#1B3A6B]" />
+              <h3 className="text-sm font-bold text-slate-900">Membros por Classe Progressiva</h3>
             </div>
-
-            <div className="space-y-2.5">
-              {classCounts.map((item) => {
-                const percent = Math.round((item.count / maxClassCount) * 100);
-                return (
-                  <div key={item.name} className="flex items-center text-xs">
-                    <span className="w-28 font-medium text-slate-700 truncate">{item.name}</span>
-                    <div className="flex-1 bg-slate-100 rounded-full h-3.5 mx-3 overflow-hidden">
-                      <div
-                        className="bg-amber-500 h-full rounded-full transition-all duration-500"
-                        style={{ width: `${percent}%` }}
-                      />
-                    </div>
-                    <span className="w-12 text-right font-bold text-slate-900">{item.count}</span>
-                  </div>
-                );
-              })}
-            </div>
+            <button
+              onClick={() => onNav('membros')}
+              className="text-xs font-semibold text-[#1B3A6B] hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              Ver todos <ArrowRight className="w-3 h-3" />
+            </button>
           </div>
 
-          {/* Units Summary */}
-          <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-blue-600" />
-                  Unidades do Clube
-                </h3>
-                <p className="text-xs text-slate-500">Conselheiros e efetivo de cada unidade</p>
-              </div>
-              <button 
-                onClick={() => onNavigate('units')}
-                className="text-xs font-semibold text-blue-600 hover:text-blue-700 cursor-pointer"
-              >
-                Gerir unidades &rarr;
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {units.map((unit) => {
-                const unitMemberCount = members.filter((m) => m.unitId === unit.id).length;
-                return (
-                  <div
-                    key={unit.id}
-                    className="p-3.5 rounded-lg border border-slate-200 bg-slate-50/50 flex flex-col justify-between"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-bold text-sm text-slate-900">{unit.name}</span>
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-200 text-slate-700">
-                          {unit.gender === 'M' ? 'Masculina' : unit.gender === 'F' ? 'Feminina' : 'Mista'}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-500 italic mb-2">"{unit.motto}"</p>
-                    </div>
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 text-xs">
-                      <span className="text-slate-600">Conselheiro: <strong className="text-slate-800">{unit.counselorName}</strong></span>
-                      <span className="font-bold text-slate-900 px-2 py-0.5 bg-white rounded border border-slate-200">
-                        {unitMemberCount} membros
-                      </span>
-                    </div>
+          <div className="space-y-2.5">
+            {classStats.map((item) => {
+              const pct = total > 0 ? Math.round((item.count / total) * 100) : 0;
+              return (
+                <div key={item.name} className="flex items-center gap-3 text-xs">
+                  <span className="w-28 font-medium text-slate-700 truncate">{item.name}</span>
+                  <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-300"
+                      style={{
+                        width: `${pct}%`,
+                        backgroundColor: '#1B3A6B',
+                      }}
+                    />
                   </div>
-                );
-              })}
-            </div>
+                  <span className="w-12 text-right font-bold text-slate-800">
+                    {item.count} <span className="text-[10px] text-slate-400 font-normal">({pct}%)</span>
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* Right 1 Col: Birthdays & Recent Roll-Call */}
-        <div className="space-y-6">
-          {/* Birthdays Card */}
-          <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs">
-            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 mb-1">
-              <Cake className="w-4 h-4 text-rose-500" />
-              Aniversariantes do Mês
-            </h3>
-            <p className="text-xs text-slate-500 mb-3">Parabéns aos desbravadores este mês</p>
-
-            {birthdayMembers.length === 0 ? (
-              <p className="text-xs text-slate-400 py-3 text-center">Nenhum aniversário este mês.</p>
-            ) : (
-              <div className="space-y-2.5">
-                {birthdayMembers.map((m) => {
-                  const day = m.birthDate ? m.birthDate.split('-')[2] : '';
-                  const unit = units.find((u) => u.id === m.unitId);
-                  return (
-                    <div key={m.id} className="flex items-center justify-between p-2.5 bg-rose-50/50 rounded-lg border border-rose-100">
-                      <div>
-                        <p className="text-xs font-bold text-slate-900">{m.fullName}</p>
-                        <p className="text-[11px] text-slate-500">{unit?.name || 'Clube'} &bull; {m.currentClass}</p>
-                      </div>
-                      <span className="px-2 py-1 bg-white text-rose-600 font-bold text-xs rounded-md shadow-2xs border border-rose-200">
-                        Dia {day}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+        {/* Units Distribution */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Layers className="w-4 h-4 text-amber-600" />
+              <h3 className="text-sm font-bold text-slate-900">Distribuição por Unidade</h3>
+            </div>
+            <span className="text-xs text-slate-400 font-medium">
+              {Object.keys(unitsMap).length} Unidades
+            </span>
           </div>
 
-          {/* Latest Attendance Roll Call */}
-          <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs">
-            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 mb-1">
-              <Clock className="w-4 h-4 text-emerald-600" />
-              Última Chamada Realizada
-            </h3>
-            {latestSession ? (
-              <div className="mt-3">
-                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 mb-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-900">{latestSession.activityTitle}</span>
-                    <span className="text-[11px] text-slate-500 font-medium">{latestSession.date}</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 mt-3 text-center">
-                    <div className="bg-white p-2 rounded border border-slate-100">
-                      <span className="block text-emerald-600 font-bold text-sm">
-                        {latestSession.records.filter((r) => r.status === 'present').length}
-                      </span>
-                      <span className="text-[10px] text-slate-500">Presentes</span>
-                    </div>
-                    <div className="bg-white p-2 rounded border border-slate-100">
-                      <span className="block text-amber-600 font-bold text-sm">
-                        {latestSession.records.filter((r) => r.status === 'late').length}
-                      </span>
-                      <span className="text-[10px] text-slate-500">Atrasados</span>
-                    </div>
-                    <div className="bg-white p-2 rounded border border-slate-100">
-                      <span className="block text-rose-600 font-bold text-sm">
-                        {latestSession.records.filter((r) => r.status === 'absent').length}
-                      </span>
-                      <span className="text-[10px] text-slate-500">Faltas</span>
-                    </div>
-                  </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {Object.entries(unitsMap).map(([unitName, count]) => (
+              <div
+                key={unitName}
+                className="p-3.5 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-between"
+              >
+                <div>
+                  <span className="font-bold text-xs text-slate-800 block truncate">{unitName}</span>
+                  <span className="text-[11px] text-slate-400">Unidade Oficial</span>
                 </div>
-
-                <button
-                  onClick={() => onNavigate('attendance')}
-                  className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold rounded-lg transition-colors cursor-pointer text-center"
-                >
-                  Ver Histórico de Presenças
-                </button>
+                <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 font-black text-xs text-[#1B3A6B]">
+                  {count}
+                </span>
               </div>
-            ) : (
-              <p className="text-xs text-slate-400 py-4 text-center">Nenhuma chamada realizada ainda.</p>
-            )}
+            ))}
           </div>
+        </div>
+      </div>
+
+      {/* Recent Members Table */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900">Desbravadores Cadastrados Recentemente</h3>
+            <p className="text-xs text-slate-500">Últimos registros da base de dados do clube</p>
+          </div>
+          <button
+            onClick={() => onNav('membros')}
+            className="text-xs font-bold text-[#1B3A6B] hover:underline flex items-center gap-1 cursor-pointer"
+          >
+            Abrir Lista Completa <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-100 text-xs">
+            <thead>
+              <tr className="text-left text-slate-400 font-semibold">
+                <th className="py-2.5 px-3">Desbravador</th>
+                <th className="py-2.5 px-3">Nº Identificação</th>
+                <th className="py-2.5 px-3">Classe</th>
+                <th className="py-2.5 px-3">Unidade</th>
+                <th className="py-2.5 px-3 text-center">Estado</th>
+                <th className="py-2.5 px-3 text-right">Ação</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {members.slice(0, 5).map((m) => (
+                <tr key={m.id} className="hover:bg-slate-50/80 transition-colors">
+                  <td className="py-2.5 px-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-full bg-[#1B3A6B] text-white flex items-center justify-center font-bold text-[10px]">
+                        {m.nomeCompleto.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <span className="font-bold text-slate-900 block">{m.nomeCompleto}</span>
+                        <span className="text-[10px] text-slate-400">{m.telefone || 'Sem contato'}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-2.5 px-3 font-mono text-[11px] text-slate-600 font-medium">
+                    {m.numeroIdentificacao || m.id}
+                  </td>
+                  <td className="py-2.5 px-3 text-slate-700 font-semibold">
+                    {m.classeAtual || m.classe}
+                  </td>
+                  <td className="py-2.5 px-3 text-slate-600">
+                    {m.unidade}
+                  </td>
+                  <td className="py-2.5 px-3 text-center">
+                    <span
+                      className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        m.ativo
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'bg-amber-50 text-amber-700 border border-amber-200'
+                      }`}
+                    >
+                      {m.ativo ? 'Ativo' : 'Inativo'}
+                    </span>
+                  </td>
+                  <td className="py-2.5 px-3 text-right">
+                    <button
+                      onClick={() => onNav('detalhe', m.id)}
+                      className="px-2.5 py-1 text-xs font-semibold text-[#1B3A6B] hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                    >
+                      Ver Ficha
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
   );
 };
+
+export default Dashboard;
